@@ -649,16 +649,30 @@ def history_to_chatbot_messages(history: History) -> List[Dict[str, str]]:
     """Convert history tuples to chatbot message format"""
     messages = []
     for user_msg, assistant_msg in history:
-        # Handle multimodal content
+        # Normalize user message to a plain string
         if isinstance(user_msg, list):
             text_content = ""
             for item in user_msg:
                 if isinstance(item, dict) and item.get("type") == "text":
                     text_content += item.get("text", "")
-            user_msg = text_content if text_content else str(user_msg)
+            user_text = text_content if text_content else str(user_msg)
+        else:
+            user_text = str(user_msg) if user_msg is not None else ""
 
-        messages.append({"role": "user", "content": user_msg})
-        messages.append({"role": "assistant", "content": assistant_msg})
+        # Normalize assistant message to a plain string
+        if isinstance(assistant_msg, list):
+            text_content = ""
+            for item in assistant_msg:
+                if isinstance(item, dict) and item.get("type") == "text":
+                    text_content += item.get("text", "")
+            assistant_text = text_content if text_content else str(assistant_msg)
+        else:
+            assistant_text = str(assistant_msg) if assistant_msg is not None else ""
+
+        # Append as message dicts (Gradio messages format)
+        messages.append({"role": "user", "content": user_text})
+        messages.append({"role": "assistant", "content": assistant_text})
+
     return messages
 
 
