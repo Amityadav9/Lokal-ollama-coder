@@ -968,12 +968,16 @@ def create_interface():
 
         with gr.Row():
             with gr.Column(scale=1):
-                # Model selection
+                # Model selection (safe default: only use DEFAULT_MODEL_ID if present in choices)
+                model_choices = [m["id"] for m in AVAILABLE_MODELS]
+                default_model = (
+                    DEFAULT_MODEL_ID
+                    if DEFAULT_MODEL_ID in model_choices
+                    else (model_choices[0] if model_choices else None)
+                )
                 model_dropdown = gr.Dropdown(
-                    choices=[m["id"] for m in AVAILABLE_MODELS],
-                    value=DEFAULT_MODEL_ID
-                    if DEFAULT_MODEL_ID
-                    else (AVAILABLE_MODELS[0]["id"] if AVAILABLE_MODELS else None),
+                    choices=model_choices,
+                    value=default_model,
                     label="Select Model",
                     interactive=True,
                 )
@@ -999,10 +1003,12 @@ def create_interface():
                     label="Output Type",
                 )
 
+                # Only enable the web-search checkbox when Tavily is configured
                 enable_search = gr.Checkbox(
                     label="Enable Web Search",
-                    value=bool(tavily_client),
-                    interactive=bool(tavily_client),
+                    value=False if not tavily_client else True,
+                    interactive=False if not tavily_client else True,
+                    visible=bool(tavily_client),
                 )
 
                 # Demo examples
