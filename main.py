@@ -7,7 +7,7 @@ import ollama
 from tavily import TavilyClient
 import gradio as gr
 
-# Gradio supported languages for syntax highlighting
+# Gradio supported languages for syntax highlighting.
 GRADIO_SUPPORTED_LANGUAGES = [
     "python",
     "c",
