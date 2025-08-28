@@ -30,58 +30,85 @@ Upload a UI mockup → Get working HTML/CSS
 Enter URL → Get modernized responsive version
 ```
 
-## 🛠️ Installation
+## 🛠️ Setup & Run (updated)
 
-### 1. Install Ollama
+Follow these steps to prepare and run the app locally. The app entrypoint is now `main.py`.
+
+1) Install Ollama
 
 ```bash
-# macOS/Linux
+# macOS / Linux
 curl -fsSL https://ollama.ai/install.sh | sh
 
-# Windows: Download from https://ollama.ai
+# Windows: download the installer from https://ollama.ai
 ```
 
-### 2. Download AI Models
+2) Download models (example)
 
 ```bash
-# Essential models
-ollama pull codellama:7b          # Best for code generation
-ollama pull llava:7b              # For image-to-code (vision)
-ollama pull llama3.1:8b           # General purpose
-
-# Optional but recommended
-ollama pull deepseek-coder:6.7b   # Specialized code model
-ollama pull codellama:13b         # Larger, more capable
+ollama pull codellama:7b
+ollama pull llava:7b
+ollama pull llama3.1:8b
 ```
 
-### 3. Start Ollama Server
+3) Start Ollama server
 
 ```bash
 ollama serve
 ```
 
-### 4. Install Dependencies
+4) Install Python dependencies
 
 ```bash
-git clone https://github.com/yourusername/anycoder-ollama.git
-cd anycoder-ollama
 pip install -r requirements.txt
+# Optional: install python-dotenv to load a .env file automatically
+pip install python-dotenv
 ```
 
-### 5. Run the App
+5) Configure environment variables (recommended: use a `.env` file)
 
+Create a file named `.env` at the repository root (same folder as `main.py`):
+
+```
+OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_DEFAULT_MODEL=gemma3:12b   # optional, must match an installed model id
+TAVILY_API_KEY=your_tavily_api_key # optional, leave blank to disable web search
+```
+
+Note: `.env` is not loaded automatically by Python — either export the variables in your shell or install `python-dotenv` and add `from dotenv import load_dotenv; load_dotenv()` near the top of `main.py`.
+
+6) Run the app
+
+WSL / bash:
 ```bash
-python app.py
+export TAVILY_API_KEY="..."        # optional
+export OLLAMA_DEFAULT_MODEL="gemma3:12b"  # optional
+python main.py
 ```
 
-Visit `http://localhost:7860` in your browser! 🎉
+Windows CMD (temporary for this session):
+```cmd
+set TAVILY_API_KEY=...
+set OLLAMA_DEFAULT_MODEL=gemma3:12b
+python main.py
+```
+
+Windows persistent (new shells will see it):
+```cmd
+setx OLLAMA_DEFAULT_MODEL "gemma3:12b"
+```
+
+Open the printed local URL (usually `http://0.0.0.0:7860` or `http://localhost:7860`).
 
 ## 📋 Requirements
+
+Add the following to `requirements.txt` (or install with pip):
 
 ```txt
 gradio
 ollama
 tavily-python
+python-dotenv  # optional, recommended for .env support
 PyPDF2
 python-docx
 pytesseract
@@ -208,6 +235,18 @@ ollama list
 # Download a model
 ollama pull codellama:7b
 ```
+
+### Dropdown default / model mismatch
+If you see an error like:
+
+```
+Value: gemma3:12b is not in the list of choices: ['llama3.1:8b']
+```
+
+It means `OLLAMA_DEFAULT_MODEL` (or your chosen default) doesn't match the models that the app discovered at runtime. Fixes:
+- Make sure the model id in `.env` (or the environment) exactly matches one listed by `ollama list`.
+- Remove or unset `OLLAMA_DEFAULT_MODEL` to let the app pick the first installed model automatically.
+- You can also edit `main.py` to force the app to show all installed models rather than a predefined subset.
 
 ### Port Already in Use
 ```bash
