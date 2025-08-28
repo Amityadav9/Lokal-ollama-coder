@@ -7,7 +7,17 @@ import ollama
 from tavily import TavilyClient
 import gradio as gr
 
-# Gradio supported languages for syntax highlighting.
+try:
+    from PIL import Image as PILImage
+    import pytesseract
+
+    OCR_AVAILABLE = True
+except Exception:
+    PILImage = None
+    pytesseract = None
+    OCR_AVAILABLE = False
+
+# Gradio supported languages for syntax highlighting
 GRADIO_SUPPORTED_LANGUAGES = [
     "python",
     "c",
@@ -1018,6 +1028,14 @@ def create_interface():
                     btn = gr.Button(example["title"], size="sm")
                     example_buttons.append((btn, example["description"]))
 
+                # Image upload for vision flows
+                gr.Markdown("### Image (UI / OCR)")
+                image_input = gr.Image(
+                    type="pil", label="Upload UI screenshot or mockup"
+                )
+                extract_text_btn = gr.Button("Extract Text from Image")
+                gen_from_image_btn = gr.Button("Generate from Image")
+
             with gr.Column(scale=3):
                 chatbot = gr.Chatbot(type="messages", height=400, elem_id="chatbot")
 
@@ -1147,6 +1165,85 @@ def create_interface():
             ],
             outputs=[chatbot, history, code_output, last_code, html_preview],
         ).then(lambda: "", outputs=[msg])
+
+        # OCR helper: return extracted text or an error message
+        def ocr_from_image(image):
+            if not OCR_AVAILABLE:
+                return "Error: pytesseract or Pillow not installed on the server. Install pytesseract and pillow."
+            if image is None:
+                return ""
+            try:
+                # image is a PIL Image
+                text = pytesseract.image_to_string(image).strip()
+                return text
+            except Exception as e:
+                return f"OCR error: {e}"
+
+        # Button handlers for image flows
+        def handle_extract_text(image):
+            text = ocr_from_image(image)
+            # Place extracted text into the message box so user can review
+            return text
+
+        def handle_generate_from_image(
+            image, history_state, model, temp, output_type_value, enable_search_value
+        ):
+            # Extract text first
+            extracted = ocr_from_image(image)
+            if extracted.startswith("Error"):
+                # propagate error into chat
+                assistant = extracted
+                history_state.append(["(image)", assistant])
+                return (
+                    history_to_chatbot_messages(history_state),
+                    history_state,
+                    assistant,
+                    assistant,
+                    gr.update(visible=False),
+                )
+
+            # Build a prompt that asks the model to synthesize HTML/CSS from OCR + inferred layout
+            prompt = (
+                f"You are an expert frontend developer. Based on the text and visual cues below (extracted from an image), generate a single-file responsive HTML + CSS. "
+                f"Use semantic HTML, modern CSS, and include a mobile-friendly hamburger menu if necessary.\n\nExtracted text and labels:\n{extracted}\n\nIf layout hints are absent, infer a sensible layout. Return only the HTML inside a code block."
+            )
+
+            response, new_history = chat_with_model(
+                prompt,
+                history_state,
+                model,
+                temp,
+                get_system_prompt(output_type_value, enable_search_value),
+                enable_search_value,
+            )
+
+            processed_code = process_code_output(response, output_type_value)
+            preview_update = gr.update(visible=False)
+            if output_type_value == "HTML" and processed_code:
+                preview_update = gr.update(value=processed_code, visible=True)
+
+            chatbot_messages = history_to_chatbot_messages(new_history)
+            return (
+                chatbot_messages,
+                new_history,
+                processed_code,
+                processed_code,
+                preview_update,
+            )
+
+        extract_text_btn.click(handle_extract_text, inputs=[image_input], outputs=[msg])
+        gen_from_image_btn.click(
+            handle_generate_from_image,
+            inputs=[
+                image_input,
+                history,
+                model_dropdown,
+                temperature,
+                output_type,
+                enable_search,
+            ],
+            outputs=[chatbot, history, code_output, last_code, html_preview],
+        )
 
         msg.submit(
             chat_and_update,
