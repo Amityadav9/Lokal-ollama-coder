@@ -1,0 +1,23 @@
+gradio
+ollama
+tavily-python
+PyPDF2
+python-docx
+pytesseract
+Pillow
+opencv-python
+requests
+beautifulsoup4
+html2text
+# RAG / LangChain dependencies (for src/rag.py)
+langchain
+langchain-community
+langchain-huggingface
+langchain-ollama
+faiss-cpu
+sentence-transformers
+torch
+transformers
+python-dotenv
+PyPDF2
+ollama
