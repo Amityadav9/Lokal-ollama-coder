@@ -9,6 +9,7 @@ opencv-python
 requests
 beautifulsoup4
 html2text
+
 # RAG / LangChain dependencies (for src/rag.py)
 langchain
 langchain-community
